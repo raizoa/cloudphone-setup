@@ -5,52 +5,29 @@ set -u
 URL="https://github.com/raizoa/cloudphone-setup/releases/download/V1.0/CloudKit.zip"
 
 WORK_DIR="$HOME/CloudKit"
-ZIP_FILE="$WORK_DIR/CloudKit.zip"
+ARCHIVE="$WORK_DIR/CloudKit.zip"
 EXTRACT_DIR="$WORK_DIR/extracted"
-
-ANDROID_DOWNLOAD="/sdcard/Download"
-APK_OUTPUT="$ANDROID_DOWNLOAD/CloudKit.apk"
+ANDROID_DIR="/sdcard/Download/CloudKit"
 
 echo ""
 echo "=========================================="
-echo "       CLOUDKIT AUTO INSTALLER"
+echo " CLOUDKIT - 3 APK AUTO SETUP"
 echo "=========================================="
-echo ""
-
-# ==========================================
-# 1. INSTALL PACKAGE
-# ==========================================
 
 echo "[1/7] Update Termux..."
-
 pkg update -y
 
 echo "[2/7] Install kebutuhan..."
+pkg install -y curl unzip
 
-pkg install -y curl unzip file
-
-# ==========================================
-# 2. SETUP STORAGE
-# ==========================================
-
-echo "[3/7] Menyiapkan storage Android..."
-
-termux-setup-storage
+echo "[3/7] Setup folder..."
 
 mkdir -p "$WORK_DIR"
-mkdir -p "$ANDROID_DOWNLOAD"
+mkdir -p "$EXTRACT_DIR"
+mkdir -p "$ANDROID_DIR"
 
-# ==========================================
-# 3. DOWNLOAD
-# ==========================================
-
-echo "[4/7] Download CloudKit.zip..."
 echo ""
-
-if [ -f "$ZIP_FILE" ]; then
-    echo "File sebelumnya ditemukan."
-    echo "Melanjutkan / mengecek download..."
-fi
+echo "[4/7] Download CloudKit.zip..."
 
 curl -fL \
     -C - \
@@ -58,123 +35,59 @@ curl -fL \
     --retry-delay 3 \
     --progress-bar \
     "$URL" \
-    -o "$ZIP_FILE"
+    -o "$ARCHIVE"
 
-echo ""
-echo "Download selesai."
-
-# ==========================================
-# 4. CHECK FILE
-# ==========================================
-
-echo ""
-echo "[5/7] Memeriksa file..."
-
-if [ ! -f "$ZIP_FILE" ]; then
-    echo "ERROR: CloudKit.zip tidak ditemukan."
+if [ ! -f "$ARCHIVE" ]; then
+    echo "ERROR: File tidak ditemukan."
     exit 1
 fi
 
-echo "Ukuran file:"
-ls -lh "$ZIP_FILE"
-
 echo ""
-echo "Memeriksa ZIP..."
+echo "[5/7] Memeriksa arsip..."
 
-if ! unzip -t "$ZIP_FILE" >/dev/null 2>&1; then
-
-    echo ""
-    echo "ERROR: File ZIP rusak atau belum lengkap."
-    echo ""
-    echo "Hapus file dan coba download ulang:"
-    echo "rm -f '$ZIP_FILE'"
-
+if ! unzip -t "$ARCHIVE" >/dev/null 2>&1; then
+    echo "ERROR: ZIP rusak atau belum selesai."
     exit 1
 fi
 
 echo "ZIP OK."
 
-# ==========================================
-# 5. EXTRACT
-# ==========================================
-
 echo ""
-echo "[6/7] Extract CloudKit..."
+echo "[6/7] Extract semua file..."
 
 rm -rf "$EXTRACT_DIR"
-
 mkdir -p "$EXTRACT_DIR"
 
-unzip -o \
-    "$ZIP_FILE" \
-    -d "$EXTRACT_DIR"
-
-# ==========================================
-# 6. FIND APK
-# ==========================================
+unzip -o "$ARCHIVE" -d "$EXTRACT_DIR"
 
 echo ""
-echo "[7/7] Mencari APK..."
+echo "[7/7] Mencari semua APK..."
 
-APK_FILE=$(find "$EXTRACT_DIR" \
-    -type f \
-    -iname "*.apk" \
-    | head -n 1)
+APK_COUNT=0
 
-if [ -z "$APK_FILE" ]; then
+find "$EXTRACT_DIR" -type f -iname "*.apk" | while read -r APK; do
 
-    echo ""
-    echo "ERROR: File APK tidak ditemukan."
-    echo ""
-    echo "Isi folder extract:"
-    find "$EXTRACT_DIR" -type f
+    APK_NAME=$(basename "$APK")
 
-    exit 1
-fi
+    echo "Ditemukan: $APK_NAME"
+
+    cp -f "$APK" "$ANDROID_DIR/$APK_NAME"
+
+    APK_COUNT=$((APK_COUNT + 1))
+
+done
 
 echo ""
 echo "=========================================="
-echo " APK DITEMUKAN"
+echo " SEMUA APK TELAH DISALIN"
 echo "=========================================="
 
-echo "$APK_FILE"
+echo ""
+ls -lh "$ANDROID_DIR"
 
 echo ""
-echo "Ukuran APK:"
-ls -lh "$APK_FILE"
-
-# ==========================================
-# 7. COPY TO ANDROID DOWNLOAD
-# ==========================================
+echo "Lokasi:"
+echo "$ANDROID_DIR"
 
 echo ""
-echo "Menyalin APK ke Android Download..."
-
-cp -f "$APK_FILE" "$APK_OUTPUT"
-
-if [ ! -f "$APK_OUTPUT" ]; then
-
-    echo ""
-    echo "ERROR: Gagal menyalin APK ke Download."
-
-    exit 1
-fi
-
-echo ""
-echo "=========================================="
-echo " APK SIAP DIINSTALL"
-echo "=========================================="
-
-echo "$APK_OUTPUT"
-
-echo ""
-echo "Membuka Android Package Installer..."
-
-termux-open \
-    -t application/vnd.android.package-archive \
-    "$APK_OUTPUT"
-
-echo ""
-echo "=========================================="
-echo " SILAKAN INSTALL CLOUDKIT"
-echo "=========================================="
+echo "Silakan install APK dari folder Download/CloudKit"
