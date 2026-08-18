@@ -5,29 +5,32 @@ set -u
 URL="https://github.com/raizoa/cloudphone-setup/releases/download/V1.0/CloudKit.zip"
 
 WORK_DIR="$HOME/CloudKit"
-ARCHIVE="$WORK_DIR/CloudKit.zip"
+ZIP_FILE="$WORK_DIR/CloudKit.zip"
 EXTRACT_DIR="$WORK_DIR/extracted"
+
+# Folder hasil agar bisa dilihat Android
 ANDROID_DIR="/sdcard/Download/CloudKit"
 
 echo ""
 echo "=========================================="
-echo " CLOUDKIT - 3 APK AUTO SETUP"
+echo "       CLOUDKIT AUTO SETUP"
 echo "=========================================="
+echo ""
 
-echo "[1/7] Update Termux..."
+# 1. Install kebutuhan
+echo "[1/6] Menyiapkan Termux..."
+
 pkg update -y
-
-echo "[2/7] Install kebutuhan..."
 pkg install -y curl unzip
 
-echo "[3/7] Setup folder..."
+# 2. Setup folder
+echo "[2/6] Menyiapkan folder..."
 
 mkdir -p "$WORK_DIR"
-mkdir -p "$EXTRACT_DIR"
 mkdir -p "$ANDROID_DIR"
 
-echo ""
-echo "[4/7] Download CloudKit.zip..."
+# 3. Download ZIP
+echo "[3/6] Download CloudKit.zip..."
 
 curl -fL \
     -C - \
@@ -35,59 +38,69 @@ curl -fL \
     --retry-delay 3 \
     --progress-bar \
     "$URL" \
-    -o "$ARCHIVE"
+    -o "$ZIP_FILE"
 
-if [ ! -f "$ARCHIVE" ]; then
-    echo "ERROR: File tidak ditemukan."
+if [ ! -f "$ZIP_FILE" ]; then
+    echo "ERROR: CloudKit.zip tidak ditemukan."
     exit 1
 fi
 
 echo ""
-echo "[5/7] Memeriksa arsip..."
+echo "Download selesai:"
+ls -lh "$ZIP_FILE"
 
-if ! unzip -t "$ARCHIVE" >/dev/null 2>&1; then
-    echo "ERROR: ZIP rusak atau belum selesai."
+# 4. Cek ZIP
+echo ""
+echo "[4/6] Memeriksa CloudKit.zip..."
+
+if ! unzip -t "$ZIP_FILE" >/dev/null 2>&1; then
+    echo "ERROR: ZIP rusak atau download belum lengkap."
+    echo "Hapus file dan coba ulang:"
+    echo "rm -f $ZIP_FILE"
     exit 1
 fi
 
 echo "ZIP OK."
 
+# 5. Extract
 echo ""
-echo "[6/7] Extract semua file..."
+echo "[5/6] Extract semua APK..."
 
 rm -rf "$EXTRACT_DIR"
 mkdir -p "$EXTRACT_DIR"
 
-unzip -o "$ARCHIVE" -d "$EXTRACT_DIR"
+unzip -o "$ZIP_FILE" -d "$EXTRACT_DIR"
 
+# 6. Copy semua APK
 echo ""
-echo "[7/7] Mencari semua APK..."
+echo "[6/6] Mencari semua APK..."
 
 APK_COUNT=0
 
-find "$EXTRACT_DIR" -type f -iname "*.apk" | while read -r APK; do
-
-    APK_NAME=$(basename "$APK")
+find "$EXTRACT_DIR" -type f -iname "*.apk" | while IFS= read -r APK_FILE
+do
+    APK_NAME=$(basename "$APK_FILE")
 
     echo "Ditemukan: $APK_NAME"
 
-    cp -f "$APK" "$ANDROID_DIR/$APK_NAME"
-
-    APK_COUNT=$((APK_COUNT + 1))
-
+    cp -f "$APK_FILE" "$ANDROID_DIR/$APK_NAME"
 done
 
 echo ""
 echo "=========================================="
-echo " SEMUA APK TELAH DISALIN"
+echo " APK YANG BERHASIL DIEKSTRAK"
 echo "=========================================="
 
-echo ""
-ls -lh "$ANDROID_DIR"
+find "$ANDROID_DIR" -type f -iname "*.apk"
 
 echo ""
-echo "Lokasi:"
+echo "=========================================="
+echo " SELESAI"
+echo "=========================================="
+echo ""
+echo "Lokasi APK:"
 echo "$ANDROID_DIR"
-
 echo ""
-echo "Silakan install APK dari folder Download/CloudKit"
+
+# Coba buka folder Download
+termux-open "$ANDROID_DIR"
